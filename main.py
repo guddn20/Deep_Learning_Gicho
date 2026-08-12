@@ -5,29 +5,25 @@ import cv2
 import re
 import shutil
 from ultralytics import YOLO
+from Models.yolo import yolo_train
 
 if __name__ == "__main__":
-    # 머신러닝 객체 생성 -> 훈련 -> 예측 -> 평가
-    # YOLO 라이브러리 세팅(pip)
-    #model = YOLO()
 
-    yaml_path = r"./yolo_setting.yaml"
-    
-    # YOLO 훈련
-    result = YOLO('yolov8n.pt').train(
-                                        data = yaml_path,
-                                        epochs = 50,
-                                        imgsz = 640,
-                                        batch = 16,
-                                        save = True,
-                                        device = 0,
-                                        plots = True,
-                                        name = 'peach_train01')
-
-    print('훈련 완료')
+    #yolo_train()
     
     # YOLO 평가
+    source = r"./ppch.jpg"  # 복숭아 이미지
 
+    model = YOLO("./runs/detect/peach_train01-6/weights/best.pt")
+
+    model.predict(source=source,
+                  device=0,
+                  save=True)
+
+    # 성능 개선 방법
+    # 1. 데이터 수집
+    # 2. augmentation
+    # 3. 에포크 ↑
 
 # 딥러닝 시퀀스
 # 1. 데이터 가져옴
