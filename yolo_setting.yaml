@@ -1,0 +1,6 @@
+path : C:\Users\user\Downloads\Deep_Learning_Gicho\Data\PeachDataSet\YoloDataSet
+train : images/train
+val : images/valid
+
+names :
+  0 : peach
