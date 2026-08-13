@@ -20,3 +20,10 @@ def yolo_train():
 
     print("훈련 완료")
 
+def yolo_predict(source, weight_path):
+    # YOLO 평가
+    # source = r"./ppch.jpg"  # 복숭아 이미지
+    weight_path = "./runs/detect/peach_train01-6/weights/best.pt"
+    model = YOLO(weight_path)
+
+    model.predict(source=source, device=0, save=True)

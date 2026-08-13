@@ -1,29 +1,55 @@
 # 라벨 만들기 위한 os, json
-import os, json
+import os, re, json
 import matplotlib.pyplot as plt
+
+# 비전 관련 작업 cv로 진행할 때, numpy를 함께 임포트
 import cv2
-import re
+import numpy as np
+
 import shutil
-from ultralytics import YOLO
-from Models.yolo import yolo_train
+
+from Utils import Augmentation as Aug
+# 성능 개선 방법
+# 1. 데이터 수집
+# 2. augmentation
+# 3. 에포크 ↑
+
+# 실제 코드 augmentation.py -> 호출 main.py
+import albumentations as A
+
 
 if __name__ == "__main__":
 
-    #yolo_train()
-    
-    # YOLO 평가
-    source = r"./ppch.jpg"  # 복숭아 이미지
+    # fig, ax = plt.subplots(1,2)
 
-    model = YOLO("./runs/detect/peach_train01-6/weights/best.pt")
+    # image = r"./Data/YoloAugmentation/images/train/A220120XX_10307.jpg"
+    # image = cv2.imread(image)
+    # ax[0].imshow(image)
+    # image, label = Aug.flip_horizontal(image, None)
+    # ax[1].imshow(image)
+    # plt.show()
 
-    model.predict(source=source,
-                  device=0,
-                  save=True)
+    # Declare an augmentation pipeline
+    transform = A.Compose(
+        [
+            A.RandomCrop(width=256, height=256),
+            A.HorizontalFlip(p=0.5),
+            A.RandomBrightnessContrast(p=0.2),
+        ]
+    )
 
-    # 성능 개선 방법
-    # 1. 데이터 수집
-    # 2. augmentation
-    # 3. 에포크 ↑
+    # Read an image with OpenCV and convert it to the RGB colorspace
+    image = r"./Data/YoloAugmentation/images/train/A220120XX_10307.jpg"
+    image = cv2.imread(image)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+    # Augment an image
+    transformed = transform(image=image)
+    transformed_image = transformed["image"]
+
+    plt.imshow(transformed_image)
+    plt.show()
+    # Aug.pipe_augmentation()
 
 # 딥러닝 시퀀스
 # 1. 데이터 가져옴
