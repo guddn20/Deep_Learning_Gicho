@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 
 from pathlib import Path #경로 + glob
 
+import albumentations as A
+
 # 가장 기본이 되는 경로(BASE_DIR)
 BASE_DIR = Path(r"C:/Users/user/Downloads/Deep_Learning_Gicho/Data")
 SRC_DIR = BASE_DIR / 'PeachDataSet' / 'YoloDataSet'
@@ -146,3 +148,26 @@ def adjust_brightness(image, label):
 def adjust_contrast(image, label):
 
     return image, label
+
+
+def play_albumentation():
+    # Declare an augmentation pipeline
+    transform = A.Compose(
+        [
+            A.RandomCrop(width=256, height=256),
+            A.HorizontalFlip(p=0.5),
+            A.RandomBrightnessContrast(p=0.2),
+        ]
+    )
+
+    # Read an image with OpenCV and convert it to the RGB colorspace
+    image = r"./Data/YoloAugmentation/images/train/A220120XX_10307.jpg"
+    image = cv2.imread(image)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+    # Augment an image
+    transformed = transform(image=image)
+    transformed_image = transformed["image"]
+
+    plt.imshow(transformed_image)
+    plt.show()
