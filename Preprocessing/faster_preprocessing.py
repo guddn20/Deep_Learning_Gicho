@@ -49,9 +49,11 @@ NUTS_CLASS_NAMES = {
 class NutsDataSet(Dataset):
     # 데이터셋을 만들 때 필요한 핵심 정보 : 이미지, 라벨 폴더의 경로 / 트랜스폼
     # transforms=None / transforms 값을 주지 않았을 때는 None이 디폴트
-    def __init__(self, image_dir, label_dir, transforms=None):
+    def __init__(self, image_dir, label_dir):
         self.image_dir = image_dir
-        self.transform = transforms
+        self.transforms = transforms.Compose([
+            transforms.ToTensor(), 
+            transforms.Normalize((0.5), (0.5))])
         self.label_dir = label_dir
 
         self.samples = []
@@ -61,36 +63,35 @@ class NutsDataSet(Dataset):
     def __len__(self):
         # 데이터가 있는 위치의 파일 개수 반환 -> 한개의 이미지에 여러개의 라벨 존재 가능
         # 라벨의 개수를 데이터 개수라고 보는 것이 맞다.
-        return len(self.image_dir)
+        return len(self.samples)
 
     # 이미지-라벨 쌍 반환
     def __getitem__(self, index):
-        #self.samples안에 이미지, 라벨 전부 존재
+        # self.samples안에 이미지, 라벨 전부 존재
         sample = self.samples[index]
-        
-        #이미지
+
+        # 이미지
         image = Image.open(sample['img_path']).convert('RGB')
-        
-        #라벨 -> bbox, cls (어떤 오브젝트인지)
+
+        # 라벨 -> bbox, cls (어떤 오브젝트인지)
         boxes = torch.tensor(sample['boxes'], dtype=torch.float32)
         cls = torch.tensor(sample['labels'], dtype=torch.int64)
-        
-        #[0, 1, 2, 3]
-        #[x1, y1, x2, y2] 너비 계산 -> 여러개의 박스에 대해 여러 개(각 박스)별로 수행
-        
-        #faster rcnn
+
+        # [0, 1, 2, 3]
+        # [x1, y1, x2, y2] 너비 계산 -> 여러개의 박스에 대해 여러 개(각 박스)별로 수행
+
+        # faster rcnn
         target = {
             'boxes' : boxes,
             'labels' : cls,
             'image_id' : torch.tensor([index]),
-            'area' : (boxes[:, 2] - boxes[:,0]) * (boxes[:3] - boxes[:,1]),
+            'area' : (boxes[:, 2] - boxes[:,0]) * (boxes[:, 3] - boxes[:,1]),
             'iscrowd' : torch.zeros(len(cls), dtype=torch.uint8) #개별 객체니? 뭉쳐있니?
         }
-        
-        image = self.transform(image)
-        
+
+        image = self.transforms(image)
+
         return image, target
-        
 
     def extract_label_data(self, label_dir):
         for f in sorted(os.listdir(label_dir)):
@@ -100,7 +101,7 @@ class NutsDataSet(Dataset):
                 continue
 
             file_path = os.path.join(label_dir, f)
-            #print(file_path)
+            # print(file_path)
             with open(file_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
 
@@ -137,20 +138,20 @@ class NutsDataSet(Dataset):
 # image와 label 폴더 위치를 주면 일정 비율로 쪼개서 train_image, train_label, valid_image, valid_label
 def copy_split_files(file_list, image_dir, label_dir, out_image_dir, out_label_dir):
     
-    os.mkdir(out_image_dir)
-    os.mkdir(out_label_dir)
+    os.mkdir(str(out_image_dir))
+    os.mkdir(str(out_label_dir))
 
     for f in file_list:
         filename = os.path.splitext(f)[0] + '.jpg'
         
         src_img = os.path.join(image_dir, filename)
         if os.path.exists(src_img):
-            #shutil.copy2(src_img, os.path.join(out_image_dir, filename))
-            print(f'{src_img}를 {os.path.join(out_image_dir, filename)}로')
+            shutil.copy2(src_img, os.path.join(out_image_dir, filename))
+            #print(f'{src_img}를 {os.path.join(out_image_dir, filename)}로')
         src_lab = os.path.join(label_dir, f)
         if os.path.exists(src_lab):
-            #shutil.cpy2(src_lab, os.path.join(out_label_dir, f))
-            print(f'{src_lab}를 {os.path.join(out_label_dir, f)}로')
+            shutil.copy2(src_lab, os.path.join(out_label_dir, f))
+            #print(f'{src_lab}를 {os.path.join(out_label_dir, f)}로')
 
 # Train, Valid => 각 폴더에 맞게 copy_split_files를 수행!
 def split_json_files(label_dir, ratio=0.8, seed=42):
@@ -168,9 +169,9 @@ def get_nuts_dataloader(image_dir, label_dir):
     valid_image, valid_label을 추출한다!
     앞서 정의한 copy_split_files와 split_json_files를 활용해서 만듦
     '''
-
-    os.mkdir('C:\Users\user\Downloads\Deep_Learning_Gicho\Data\NutsDataSet\train')
-    os.mkdir('C:\Users\user\Downloads\Deep_Learning_Gicho\Data\NutsDataSet\valid')
+    
+    os.mkdir(r'C:\Users\user\Downloads\Deep_Learning_Gicho\Data\NutsDataSet\train')
+    os.mkdir(r'C:\Users\user\Downloads\Deep_Learning_Gicho\Data\NutsDataSet\valid')
     
     train_image = r"C:\Users\user\Downloads\Deep_Learning_Gicho\Data\NutsDataSet\train\image"
     train_label = r"C:\Users\user\Downloads\Deep_Learning_Gicho\Data\NutsDataSet\train\label"
@@ -199,8 +200,8 @@ def get_nuts_dataloader(image_dir, label_dir):
     
     return train_loader, valid_loader
 
-#배치별로 데이터를 묶어줌 -> ObjectDetection에서 하나의 이미지에 여러개의 객체가 있을 때 묶어주는 역할
-#Pytorch model zoo의 faster rcnn쓸 때는 필수
+# 배치별로 데이터를 묶어줌 -> ObjectDetection에서 하나의 이미지에 여러개의 객체가 있을 때 묶어주는 역할
+# Pytorch model zoo의 faster rcnn쓸 때는 필수
 def collate_fn(batch):
     return tuple(zip(*batch))
 
