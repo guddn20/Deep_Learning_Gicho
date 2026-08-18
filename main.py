@@ -13,6 +13,28 @@ from Utils import Augmentation as Aug
 from torchvision.models.detection import FasterRCNN_ResNet50_FPN_Weights, fasterrcnn_resnet50_fpn
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
+# 0818 추가 (Unet 관련 모듈)
+from Models.unet import Unet, train
+from Preprocessing.unet_preprocessing import get_dataloader, NUM_CLASSES
+
+
+def count_params(model):
+    # requires_grad = True (훈련시킬것, 변경가능) = Fasle(훈련안시킴, 변경불가)
+    # p.numel(파라미터의 구성요소 개수)
+    total = sum(p.numel() for p in model.parameters())
+    trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"전체 파라미터    : {total:,}")
+    print(f"훈련 가능 파라미터: {trainable:,}")
+    print(f"동결된 파라미터  : {total - trainable:,}")
 
 if __name__ == "__main__":
-    pass
+    image_dir = r"C:\Users\user\Downloads\Deep_Learning_Gicho\Data\NutsDataSet\images"
+    label_dir = r"C:\Users\user\Downloads\Deep_Learning_Gicho\Data\NutsDataSet\labels"
+
+    train_loader, valid_loader = get_dataloader(image_dir, label_dir, image_size=512, batch_size=4)
+
+    model = Unet(in_channel=3, num_classes=NUM_CLASSES)
+    count_params(model=model)
+
+    train(model, train_loader=train_loader, valid_loader=valid_loader,
+          epochs=1, lr=1e-3, save_path = './unet_nuts.pth', num_classes=NUM_CLASSES)
